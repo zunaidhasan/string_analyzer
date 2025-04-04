@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>String Analyzer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+            transition: background-color 0.5s ease;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            animation: fadeIn 1.2s ease-out;
+            position: relative;
+        }
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background-color: #3498db;
+            animation: growLine 1.5s forwards 0.5s;
+        }
+        @keyframes growLine {
+            to { width: 100px; }
+        }
+        .container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.8s ease-out;
+            transform-origin: center;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 16px;
+            transition: border 0.3s, box-shadow 0.3s;
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+        textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 1s ease-out 0.5s both;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+        }
+        button:focus:not(:active)::after {
+            animation: ripple 1s ease-out;
+        }
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(20, 20);
+                opacity: 0;
+            }
+        }
+        #loadingIndicator {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e1e1e1;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        #results.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .stat-number {
+            font-weight: bold;
+            color: #3498db;
+            display: inline-block;
+            animation: countUp 1.5s ease-out forwards;
+        }
+        @keyframes countUp {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .highlighted {
+            padding: 2px 4px;
+            border-radius: 3px;
+            margin: 2px;
+            display: inline-block;
+            opacity: 0;
+            animation: fadeInWord 0.5s forwards;
+            transition: transform 0.2s;
+        }
+        .highlighted:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        @keyframes fadeInWord {
+            to {
+                opacity: 1;
+            }
+        }
+        .noun { background-color: #ffcccc; }
+        .verb { background-color: #ccffcc; }
+        .adjective { background-color: #ccccff; }
+        .adverb { background-color: #ffffcc; }
+        .pronoun { background-color: #ffccff; }
+        .preposition { background-color: #ccffff; }
+        .conjunction { background-color: #ffddbb; }
+        .interjection { background-color: #ddbbff; }
+        .article { background-color: #bbffdd; }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            gap: 10px;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            transition: transform 0.3s;
+        }
+        .legend-item:hover {
+            transform: translateX(5px);
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 5px;
+            border-radius: 3px;
+            transition: transform 0.2s;
+        }
+        .legend-item:hover .legend-color {
+            transform: scale(1.2);
+        }
+        h2, h3 {
+            position: relative;
+            display: inline-block;
+        }
+        h2::after, h3::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: #3498db;
+            transition: width 0.8s ease;
+        }
+        #results.active h2::after, #results.active h3::after {
+            width: 100%;
+            transition-delay: 0.5s;
+        }
+        /* Dark mode toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 24px;
+            border-radius: 12px;
+            background-color: #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s;
+            animation: fadeIn 1s ease-out 0.7s both;
+        }
+        .dark-mode .theme-toggle {
+            background-color: #3498db;
+            color: #f5f5f5;
+        }
+        .dark-mode {
+            background-color: #2c3e50;
+            color: #f5f5f5;
+        }
+        .dark-mode .container {
+            background-color: #34495e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        .dark-mode textarea {
+            background-color: #2c3e50;
+            color: #f5f5f5;
+            border-color: #3498db;
+        }
+        .dark-mode #results {
+            background-color: #2c3e50;
+            border-color: #3498db;
+        }
+        .dark-mode h1 {
+            color: #f5f5f5;
+        }
+        .dark-mode button:hover {
+            background-color: #1abc9c;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleDarkMode()">☀️</div>
+    <div class="container">
+        <h1>String Analyzer</h1>
+        <p>Enter any text to analyze its length and identify parts of speech.</p>
+        
+        <textarea id="inputText" placeholder="Enter your text here..."></textarea>
+        <button onclick="analyzeString()">Analyze</button>
+        
+        <div id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Analyzing your text...</p>
+        </div>
+        
+        <div id="results">
+            <h2>Analysis Results</h2>
+            <p><strong>String Length:</strong> <span id="stringLength" class="stat-number">0</span> characters</p>
+            <p><strong>Word Count:</strong> <span id="wordCount" class="stat-number">0</span> words</p>
+            
+            <h3>Parts of Speech:</h3>
+            <div id="partsOfSpeech"></div>
+            
+            <div class="legend">
+                <h3>Legend:</h3>
+                <div id="legendItems"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dictionary of words categorized by parts of speech
+        const partsOfSpeechDict = {
+            nouns: ['time', 'person', 'year', 'way', 'day', 'thing', 'man', 'world', 'life', 'hand', 'part', 'child', 'eye', 'woman', 'place', 'work', 'week', 'case', 'point', 'government', 'company', 'number', 'group', 'problem', 'fact', 'book', 'house', 'computer', 'website', 'dog', 'cat', 'car', 'phone', 'food', 'money', 'job', 'school', 'teacher', 'student'],
+            verbs: ['be', 'have', 'do', 'say', 'get', 'make', 'go', 'know', 'take', 'see', 'come', 'think', 'look', 'want', 'give', 'use', 'find', 'tell', 'ask', 'work', 'seem', 'feel', 'try', 'leave', 'call', 'run', 'walk', 'jump', 'eat', 'drink', 'play', 'write', 'read', 'learn', 'teach', 'move', 'speak', 'hear', 'like', 'love', 'hate', 'create', 'analyze', 'count'],
+            adjectives: ['good', 'new', 'first', 'last', 'long', 'great', 'little', 'own', 'other', 'old', 'right', 'big', 'high', 'different', 'small', 'large', 'next', 'early', 'young', 'important', 'few', 'public', 'bad', 'same', 'able', 'beautiful', 'ugly', 'happy', 'sad', 'smart', 'clever', 'silly', 'tall', 'short', 'fast', 'slow', 'red', 'blue', 'green', 'yellow'],
+            adverbs: ['up', 'so', 'out', 'just', 'now', 'how', 'then', 'more', 'also', 'here', 'well', 'only', 'very', 'even', 'back', 'there', 'down', 'still', 'in', 'as', 'too', 'when', 'never', 'always', 'sometimes', 'often', 'rarely', 'quickly', 'slowly', 'loudly', 'quietly', 'well', 'badly', 'really', 'extremely', 'quite', 'almost'],
+            pronouns: ['I', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs', 'this', 'that', 'these', 'those', 'who', 'whom', 'whose', 'which', 'what', 'whatever', 'whoever', 'whomever', 'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'themselves'],
+            prepositions: ['of', 'in', 'to', 'for', 'with', 'on', 'at', 'from', 'by', 'about', 'as', 'into', 'like', 'through', 'after', 'over', 'between', 'out', 'against', 'during', 'without', 'before', 'under', 'around', 'among', 'across', 'behind', 'beyond', 'near', 'above', 'below', 'beside', 'beneath', 'inside', 'outside'],
+            conjunctions: ['and', 'but', 'or', 'so', 'nor', 'for', 'yet', 'because', 'although', 'since', 'unless', 'while', 'where', 'if', 'than', 'whether', 'after', 'before', 'until', 'once', 'though', 'whereas'],
+            interjections: ['oh', 'wow', 'ah', 'ouch', 'hey', 'hi', 'hello', 'bye', 'goodbye', 'yes', 'no', 'yeah', 'well', 'oh no', 'hmm', 'uh', 'er', 'um', 'alas', 'hurray', 'oops', 'bravo', 'aha', 'yikes', 'darn'],
+            articles: ['a', 'an', 'the']
+        };
+
+        // Parts of speech with their display colors
+        const partsOfSpeech = {
+            noun: { label: "Noun", color: "#ffcccc" },
+            verb: { label: "Verb", color: "#ccffcc" },
+            adjective: { label: "Adjective", color: "#ccccff" },
+            adverb: { label: "Adverb", color: "#ffffcc" },
+            pronoun: { label: "Pronoun", color: "#ffccff" },
+            preposition: { label: "Preposition", color: "#ccffff" },
+            conjunction: { label: "Conjunction", color: "#ffddbb" },
+            interjection: { label: "Interjection", color: "#ddbbff" },
+            article: { label: "Article", color: "#bbffdd" }
+        };
+
+        // Function to determine part of speech of a word
+        function getPartOfSpeech(word) {
+            const wordLower = word.toLowerCase();
+            
+            if (partsOfSpeechDict.articles.includes(wordLower)) return "article";
+            if (partsOfSpeechDict.interjections.includes(wordLower)) return "interjection";
+            if (partsOfSpeechDict.conjunctions.includes(wordLower)) return "conjunction";
+            if (partsOfSpeechDict.prepositions.includes(wordLower)) return "preposition";
+            if (partsOfSpeechDict.pronouns.includes(wordLower)) return "pronoun";
+            if (partsOfSpeechDict.adverbs.includes(wordLower)) return "adverb";
+            if (partsOfSpeechDict.adjectives.includes(wordLower)) return "adjective";
+            if (partsOfSpeechDict.verbs.includes(wordLower)) return "verb";
+            if (partsOfSpeechDict.nouns.includes(wordLower)) return "noun";
+            
+            // Simple heuristic for words not in our dictionary
+            if (wordLower.endsWith('ly')) return "adverb";
+            if (wordLower.endsWith('ing')) return "verb";
+            if (wordLower.endsWith('ed')) return "verb";
+            if (wordLower.endsWith('s')) return "noun";
+            
+            return "unknown";
+        }
+
+        // Toggle dark mode
+        function toggleDarkMode() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+            
+            const themeToggle = document.querySelector('.theme-toggle');
+            if (body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '🌙'; // Moon icon for dark mode
+            } else {
+                themeToggle.textContent = '☀️'; // Sun icon for light mode
+            }
+        }
+
+        // Set initial icon based on the current theme
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.querySelector('.theme-toggle');
+            if (document.body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '🌙'; // Moon icon
+            } else {
+                themeToggle.textContent = '☀️'; // Sun icon
+            }
+        });
+
+        // Function to analyze the input string
+        function analyzeString() {
+            const inputText = document.getElementById('inputText').value;
+            
+            if (!inputText.trim()) {
+                alert("Please enter some text to analyze.");
+                return;
+            }
+            
+            // Show loading indicator with animation
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+            
+            // Hide results if they were visible
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'none';
+            resultsDiv.classList.remove('active');
+            
+            // Simulate processing time for animation effect
+            setTimeout(() => {
+                // Count string length
+                const stringLength = inputText.length;
+                document.getElementById('stringLength').textContent = '0';
+                
+                // Count words
+                const words = inputText.trim().split(/\s+/);
+                document.getElementById('wordCount').textContent = '0';
+                
+                // Analyze parts of speech
+                const partsOfSpeechDiv = document.getElementById('partsOfSpeech');
+                partsOfSpeechDiv.innerHTML = '';
+                
+                const wordRegex = /[a-zA-Z']+|[.,!?;:]/g;
+                let match;
+                let htmlContent = '';
+                let wordIndex = 0;
+                
+                while ((match = wordRegex.exec(inputText)) !== null) {
+                    const word = match[0];
+                    
+                    if (/[.,!?;:]/.test(word)) {
+                        // Punctuation
+                        htmlContent += word;
+                    } else {
+                        // Word
+                        const partOfSpeech = getPartOfSpeech(word);
+                        if (partOfSpeech !== "unknown") {
+                            htmlContent += `<span class="highlighted ${partOfSpeech}" style="animation-delay: ${wordIndex * 0.05}s">${word}</span>`;
+                            wordIndex++;
+                        } else {
+                            htmlContent += word;
+                        }
+                    }
+                    
+                    // Add space if it exists in the original text
+                    const nextIndex = wordRegex.lastIndex;
+                    if (nextIndex < inputText.length && inputText[nextIndex] === ' ') {
+                        htmlContent += ' ';
+                    }
+                }
+                
+                partsOfSpeechDiv.innerHTML = htmlContent;
+                
+                // Create legend
+                const legendDiv = document.getElementById('legendItems');
+                legendDiv.innerHTML = '';
+                
+                for (const [key, value] of Object.entries(partsOfSpeech)) {
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    
+                    const colorBox = document.createElement('div');
+                    colorBox.className = 'legend-color';
+                    colorBox.style.backgroundColor = value.color;
+                    
+                    const label = document.createElement('span');
+                    label.textContent = value.label;
+                    
+                    legendItem.appendChild(colorBox);
+                    legendItem.appendChild(label);
+                    legendDiv.appendChild(legendItem);
+                }
+                
+                // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+                
+                // Animated display of results
+                resultsDiv.style.display = 'block';
+                setTimeout(() => {
+                    resultsDiv.classList.add('active');
+                    
+                    // Animate the counter for string length
+                    animateCounter('stringLength', 0, stringLength, 1000);
+                    
+                    // Animate the counter for word count
+                    animateCounter('wordCount', 0, words.length, 1000);
+                }, 100);
+                
+            }, 800); // Simulate processing delay for animation effect
+        }
+        
+        // Function to animate number counters
+        function animateCounter(elementId, start, end, duration) {
+            const element = document.getElementById(elementId);
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    element.textContent = end;
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // Add pulse animation to button on hover
+        document.querySelector('button').addEventListener('mouseenter', function() {
+            this.classList.add('pulse');
+            setTimeout(() => this.classList.remove('pulse'), 500);
+        });
+
+        // Add focus animation to textarea
+        document.querySelector('textarea').addEventListener('focus', function() {
+            this.style.animation = 'pulse 0.5s ease';
+        });
+        
+        document.querySelector('textarea').addEventListener('animationend', function() {
+            this.style.animation = '';
+        });
+    </script>
+        <footer style="text-align: center; margin-top: 20px; padding: 10px; background-color: inherit; color: inherit; border-top: 1px solid #ddd;">
+            <p>&copy; Zunaid Hasan | All rights reserved.</p>
+        </footer>
+</body>
+</html>
